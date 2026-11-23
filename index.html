@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FHIR 醫療資訊交換標準入門｜教學簡報</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --accent: #38bdf8;
+    --accent-2: #34d399;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* 頂部進度條 */
+  .progress-bar {
+    height: 5px;
+    background: var(--border);
+    width: 100%;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    width: 12.5%;
+    transition: width 0.3s ease;
+  }
+  /* 投影片主容器 */
+  .deck {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+  }
+  .slide {
+    display: none;
+    width: 100%;
+    max-width: 960px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.8rem 3.2rem;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    animation: fadeIn 0.35s ease;
+    max-height: 82vh;
+    overflow-y: auto;
+  }
+  .slide.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  /* 標籤與標題 */
+  .badge {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.15);
+    color: var(--accent);
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  h1 { font-size: 2.5rem; line-height: 1.3; margin-bottom: 1rem; }
+  h2 { font-size: 1.85rem; line-height: 1.35; margin-bottom: 1.2rem; color: #fff; }
+  p.lead { font-size: 1.15rem; color: var(--muted); line-height: 1.7; margin-bottom: 1.5rem; }
+  /* 卡片網格 */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
+  .box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.3rem;
+  }
+  .box h3 { color: var(--accent); font-size: 1.15rem; margin-bottom: 0.6rem; }
+  .box p, .box li { color: #cbd5e1; font-size: 0.98rem; line-height: 1.6; }
+  .box ul { padding-left: 1.2rem; }
+  /* 程式碼與比喻框 */
+  pre {
+    background: #090d16;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    color: #34d399;
+    font-family: "Fira Code", Consolas, monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin-top: 0.8rem;
+  }
+  .analogy {
+    background: rgba(52, 211, 153, 0.1);
+    border-left: 4px solid var(--accent-2);
+    padding: 1rem 1.2rem;
+    border-radius: 0 12px 12px 0;
+    margin-bottom: 1.2rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+  /* 測驗按鈕 */
+  .quiz-opt {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.9rem 1.2rem;
+    border-radius: 10px;
+    margin-bottom: 0.7rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: 0.2s;
+  }
+  .quiz-opt:hover { border-color: var(--accent); }
+  .quiz-opt.correct { background: rgba(52, 211, 153, 0.2); border-color: var(--accent-2); color: #34d399; }
+  .quiz-opt.wrong { background: rgba(248, 113, 113, 0.2); border-color: #f87171; color: #f87171; }
+  /* 底部控制列 */
+  .controls {
+    height: 64px;
+    background: rgba(15, 23, 42, 0.95);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2.5rem;
+  }
+  .btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.55rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .wiki-ref { font-size: 0.85rem; color: var(--muted); }
+  @media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .slide { padding: 1.5rem; }
+    h1 { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<div class="deck">
+  <!-- Slide 1: 封面 -->
+  <div class="slide active" data-ref="知識庫總覽｜FHIR LLM Wiki">
+    <span class="badge">醫療資訊基礎教學｜零基礎入門</span>
+    <h1>FHIR 醫療資訊交換標準：<br>醫院資料如何打破孤島？</h1>
+    <p class="lead">去大醫院看病轉診時，為什麼常常還要自己燒光碟或印紙本報告？<br>這份簡報將用 5 分鐘帶你認識全球醫療界通用的「資料共通語言」。</p>
+    <div class="grid-3">
+      <div class="box"><h3>1. 痛點與起源</h3><p>理解資訊孤島與 HL7 FHIR 標準的誕生</p></div>
+      <div class="box"><h3>2. 核心技術積木</h3><p>認識 Resource 模組與 RESTful API 傳輸</p></div>
+      <div class="box"><h3>3. 台灣與未來 AI</h3><p>了解 TW Core IG 與 SMART on FHIR 應用</p></div>
+    </div>
+  </div>
+
+  <!-- Slide 2: 條目 01 -->
+  <div class="slide" data-ref="對應 Wiki：條目 01（來源 1：HL7 FHIR Executive Summary）">
+    <span class="badge">概念 01｜為什麼需要 FHIR？</span>
+    <h2>打破醫院之間的「資訊孤島」</h2>
+    <div class="grid-2">
+      <div class="box">
+        <h3>❌ 過去：各講各的方言</h3>
+        <ul>
+          <li>每家醫院的資訊系統（HIS）資料格式都不同。</li>
+          <li>A 醫院的檢驗報告，B 醫院的電腦無法直接讀取。</li>
+          <li>病人跨院轉診只能靠光碟或紙本，容易重複檢查。</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>✅ 現在：FHIR 共通語言</h3>
+        <ul>
+          <li>全名：<strong>Fast Healthcare Interoperability Resources</strong>。</li>
+          <li>由國際醫療標準組織 <strong>HL7</strong> 制定。</li>
+          <li>讓醫院、診所、手機健康 App 都能用同一套標準安全交換資料。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: 條目 02 -->
+  <div class="slide" data-ref="對應 Wiki：條目 02（來源 2：HL7 FHIR Resource Index）">
+    <span class="badge">概念 02｜核心架構</span>
+    <h2>醫療界的樂高積木：Resource（資源）</h2>
+    <div class="analogy">
+      💡 <strong>白話比喻：</strong>FHIR 把複雜的病歷拆成一塊塊標準化的「樂高積木」，每一塊積木就叫一個 <strong>Resource</strong>，各自負責記錄一種特定資訊，需要時再自由組裝起來。
+    </div>
+    <div class="grid-3">
+      <div class="box">
+        <h3>🧑 Patient（病人）</h3>
+        <p>記錄基本身分資料：姓名、性別、出生年月日、聯絡電話與地址。</p>
+      </div>
+      <div class="box">
+        <h3>🩺 Observation（觀察檢驗）</h3>
+        <p>記錄量測與檢驗數值：血壓（120/80 mmHg）、血糖、體溫、抽血報告。</p>
+      </div>
+      <div class="box">
+        <h3>💊 MedicationRequest</h3>
+        <p>記錄醫師開立的用藥處方：藥品名稱、劑量與每日服用頻率。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: 條目 03 -->
+  <div class="slide" data-ref="對應 Wiki：條目 03（來源 3：Google Cloud Healthcare API）">
+    <span class="badge">概念 03｜資料怎麼傳？</span>
+    <h2>採用現代網頁技術：RESTful API 與 JSON</h2>
+    <p class="lead">傳統醫療標準語法極度艱澀；FHIR 直接借用現代網站開發最普及的工具，讓工程師能快速串接。</p>
+    <div class="grid-2">
+      <div class="box">
+        <h3>🌐 RESTful API（傳輸動作）</h3>
+        <p>就像瀏覽網頁一樣，用標準 HTTP 指令溝通：</p>
+        <ul style="margin-top:0.5rem;">
+          <li><code>GET</code>：查詢某位病人的檢驗報告</li>
+          <li><code>POST</code>：新增一筆掛號或生理量測紀錄</li>
+        </ul>
+      </div>
+      <div class="box">
+        <h3>📄 JSON（資料格式範例）</h3>
+        <pre>{
+  "resourceType": "Patient",
+  "id": "example-01",
+  "name": [{ "text": "王小明" }],
+  "gender": "male"
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: 條目 04 -->
+  <div class="slide" data-ref="對應 Wiki：條目 04（來源 4：衛福部 TW Core IG）">
+    <span class="badge">概念 04｜台灣在地化</span>
+    <h2>台灣醫療現場應用：TW Core IG</h2>
+    <div class="analogy">
+      🇹🇼 <strong>為什麼需要台灣版？</strong>國際版 FHIR 沒有「身分證字號」或「健保卡號」欄位，因此衛福部制定了 <strong>TW Core IG（台灣核心實作指引）</strong>，讓國際標準符合台灣醫療法規與健保制度。
+    </div>
+    <div class="grid-3">
+      <div class="box"><h3>🏥 跨院電子病歷</h3><p>轉診時授權調閱他院檢查影像與用藥紀錄，免去重複抽血。</p></div>
+      <div class="box"><h3>📱 健保快易通</h3><p>民眾能在手機上即時查詢個人就醫與檢驗結果。</p></div>
+      <div class="box"><h3>👵 長照與居家照護</h3><p>讓醫院出院準備資料無縫銜接至長照機構與居家護理。</p></div>
+    </div>
+  </div>
+
+  <!-- Slide 6: 條目 05 -->
+  <div class="slide" data-ref="對應 Wiki：條目 05（來源 5：SMART on FHIR 白皮書）">
+    <span class="badge">概念 05｜智慧醫療與 AI</span>
+    <h2>讓醫院像手機一樣裝 App：SMART on FHIR</h2>
+    <div class="grid-2">
+      <div class="box">
+        <h3>📱 手機 App Store 概念</h3>
+        <p>醫院的資訊系統就像 iOS / Android 作業系統。只要支援 <strong>SMART on FHIR</strong>，醫院就能像下載 App 一樣，直接外掛各種第三方 <strong>AI 輔助診斷工具</strong>，不用每次都重寫底層程式。</p>
+      </div>
+      <div class="box">
+        <h3>🔒 OAuth 2.0 隱私保護</h3>
+        <p>結合現代網路安全授權協定，外部 AI 工具只能在獲得醫生與病人授權的情況下，讀取「完成判讀所需的最少病歷片段」，確保資料不外洩。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: 總結對照表 -->
+  <div class="slide" data-ref="對應 Wiki：條目 01～05 總整理">
+    <span class="badge">快速複習</span>
+    <h2>一張表看懂 FHIR 五大核心重點</h2>
+    <div class="box">
+      <ul style="line-height: 2;">
+        <li><strong>解決痛點（條目 01）</strong>：消除醫院間的資訊孤島，建立全球共通醫療語言。</li>
+        <li><strong>資料單元（條目 02）</strong>：以 <code>Resource</code> 為最小樂高積木（如 Patient、Observation）。</li>
+        <li><strong>傳輸技術（條目 03）</strong>：採用現代網頁標準 <code>RESTful API</code> 與輕量的 <code>JSON</code> 格式。</li>
+        <li><strong>台灣落地（條目 04）</strong>：衛福部推動 <code>TW Core IG</code>，納入健保與本土醫療欄位。</li>
+        <li><strong>AI 擴充（條目 05）</strong>：透過 <code>SMART on FHIR</code> 讓醫院安全外掛智慧醫療應用程式。</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 8: 互動隨堂測驗 -->
+  <div class="slide" data-ref="知識檢核｜互動測驗">
+    <span class="badge">隨堂小測驗</span>
+    <h2>測試看看你是否已經掌握 FHIR！</h2>
+    <p class="lead">問題：在 FHIR 的架構中，如果我們想記錄一位病人的「血壓與血糖檢驗數值」，應該使用哪一種 Resource（資源積木）？</p>
+    <div id="quiz-box">
+      <button class="quiz-opt" onclick="checkAns(this, false)">A. Patient（病人資源）</button>
+      <button class="quiz-opt" onclick="checkAns(this, true)">B. Observation（觀察與檢驗資源）</button>
+      <button class="quiz-opt" onclick="checkAns(this, false)">C. MedicationRequest（用藥處方資源）</button>
+    </div>
+    <p id="quiz-feedback" style="margin-top: 1rem; font-weight: 600;"></p>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn" id="prevBtn" onclick="changeSlide(-1)" disabled>← 上一頁</button>
+  <div style="text-align:center;">
+    <div id="pageInfo" style="font-weight:600; margin-bottom:2px;">1 / 8</div>
+    <div class="wiki-ref" id="wikiRef">知識庫總覽｜FHIR LLM Wiki</div>
+  </div>
+  <button class="btn" id="nextBtn" onclick="changeSlide(1)">下一頁 →</button>
+</div>
+
+<script>
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+
+  function updateUI() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === current));
+    document.getElementById('pageInfo').textContent = `${current + 1} / ${total}`;
+    document.getElementById('wikiRef').textContent = slides[current].dataset.ref;
+    document.getElementById('progress').style.width = `${((current + 1) / total) * 100}%`;
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').disabled = current === total - 1;
+  }
+
+  function changeSlide(dir) {
+    current = Math.max(0, Math.min(total - 1, current + dir));
+    updateUI();
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
+    if (e.key === 'ArrowLeft') changeSlide(-1);
+  });
+
+  function checkAns(btn, isCorrect) {
+    const opts = document.querySelectorAll('.quiz-opt');
+    opts.forEach(o => o.disabled = true);
+    const fb = document.getElementById('quiz-feedback');
+    if (isCorrect) {
+      btn.classList.add('correct');
+      fb.style.color = '#34d399';
+      fb.textContent = '✅ 答對了！Observation 專門用來記錄生理量測與實驗室檢驗數值（對應 Wiki 條目 02）。';
+    } else {
+      btn.classList.add('wrong');
+      fb.style.color = '#f87171';
+      fb.textContent = '❌ 再想一下喔！Patient 是基本身分、MedicationRequest 是處方，量測數值屬於 Observation。';
+    }
+  }
+</script>
+</body>
+</html>
